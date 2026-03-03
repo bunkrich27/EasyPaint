@@ -1,8 +1,9 @@
 import Cocoa
 import WebKit
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
   private var window: NSWindow?
+  private let childLockEnabled = true
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     setupMenu()
@@ -24,22 +25,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let appName = ProcessInfo.processInfo.processName
     appMenu.addItem(withTitle: "About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
     appMenu.addItem(NSMenuItem.separator())
-    appMenu.addItem(withTitle: "Quit \(appName)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    if childLockEnabled {
+      let parentExit = NSMenuItem(title: "Parent Exit", action: #selector(parentExit), keyEquivalent: "q")
+      parentExit.keyEquivalentModifierMask = [.control, .option, .command]
+      appMenu.addItem(parentExit)
+    } else {
+      appMenu.addItem(withTitle: "Quit \(appName)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    }
     appMenuItem.submenu = appMenu
 
     NSApp.mainMenu = mainMenu
   }
 
+  @objc private func parentExit() {
+    NSApplication.shared.terminate(nil)
+  }
+
   private func buildWindow() {
     let window = NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 1240, height: 840),
-      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+      styleMask: [.titled, .resizable, .fullSizeContentView],
       backing: .buffered,
       defer: false
     )
     window.title = "Easy Paint"
     window.center()
     window.minSize = NSSize(width: 720, height: 520)
+    window.collectionBehavior = [.fullScreenPrimary]
+    window.delegate = self
+    window.standardWindowButton(.closeButton)?.isHidden = childLockEnabled
+    window.standardWindowButton(.miniaturizeButton)?.isHidden = childLockEnabled
+    window.standardWindowButton(.zoomButton)?.isHidden = childLockEnabled
 
     let webViewConfig = WKWebViewConfiguration()
     webViewConfig.preferences.isTextInteractionEnabled = false
@@ -62,6 +78,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     window.contentView = webView
     window.makeKeyAndOrderFront(nil)
     self.window = window
+    enforceFullscreen(after: 0.15)
+  }
+
+  private func enforceFullscreen(after delay: TimeInterval = 0.0) {
+    guard childLockEnabled, let window else {
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      guard !window.styleMask.contains(.fullScreen) else {
+        return
+      }
+      window.toggleFullScreen(nil)
+    }
+  }
+
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    !childLockEnabled
+  }
+
+  func windowDidExitFullScreen(_ notification: Notification) {
+    enforceFullscreen(after: 0.1)
+  }
+
+  func window(
+    _ window: NSWindow,
+    willUseFullScreenPresentationOptions proposedOptions: NSApplication.PresentationOptions
+  ) -> NSApplication.PresentationOptions {
+    if childLockEnabled {
+      return [.fullScreen, .autoHideDock, .autoHideMenuBar]
+    }
+    return proposedOptions
   }
 }
 
