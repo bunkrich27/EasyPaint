@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Easy Paint</title>
+  <style>
+    :root {
+      --bg-top: #fff6d8;
+      --bg-bottom: #ffe4f2;
+      --panel: #ffffff;
+      --ink: #1f2430;
+      --border: #d8dbe5;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Avenir Next", "Nunito", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .toolbar {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 10px;
+      margin-right: 2px;
+      border-right: 2px dashed #eceef5;
+    }
+
+    .group:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    button {
+      border: 2px solid transparent;
+      border-radius: 12px;
+      min-height: 46px;
+      padding: 0 14px;
+      background: #f5f7fc;
+      color: #202533;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 80ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      background: #edf0fa;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.active {
+      border-color: #2d7cff;
+      background: #e9f1ff;
+    }
+
+    .swatch {
+      width: 42px;
+      min-width: 42px;
+      height: 42px;
+      min-height: 42px;
+      padding: 0;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .swatch.active {
+      border-color: #1c2230;
+      box-shadow: 0 0 0 2px #fff;
+    }
+
+    .size-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 210px;
+    }
+
+    .size-label {
+      font-size: 14px;
+      font-weight: 700;
+      min-width: 55px;
+    }
+
+    #size {
+      width: 130px;
+      accent-color: #2d7cff;
+    }
+
+    .size-dot {
+      width: 8px;
+      height: 8px;
+      background: #1f2430;
+      border-radius: 50%;
+      transform-origin: center;
+    }
+
+    .canvas-wrap {
+      min-height: 0;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+      background: #fff;
+    }
+
+    .hint {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid #d7dbe7;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4c5568;
+      pointer-events: none;
+    }
+
+    @media (max-width: 720px) {
+      .toolbar {
+        gap: 8px;
+      }
+
+      button {
+        min-height: 40px;
+        font-size: 15px;
+        padding: 0 10px;
+      }
+
+      .group {
+        border-right: none;
+        padding-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="toolbar" aria-label="Painting controls">
+      <div class="group" id="colors">
+        <button class="swatch active" data-color="#ff5b5b" style="background:#ff5b5b" aria-label="Red"></button>
+        <button class="swatch" data-color="#ffb400" style="background:#ffb400" aria-label="Orange"></button>
+        <button class="swatch" data-color="#ffd93d" style="background:#ffd93d" aria-label="Yellow"></button>
+        <button class="swatch" data-color="#57cc99" style="background:#57cc99" aria-label="Green"></button>
+        <button class="swatch" data-color="#3f8efc" style="background:#3f8efc" aria-label="Blue"></button>
+        <button class="swatch" data-color="#b388ff" style="background:#b388ff" aria-label="Purple"></button>
+        <button class="swatch" data-color="#000000" style="background:#000000" aria-label="Black"></button>
+      </div>
+
+      <div class="group">
+        <div class="size-wrap">
+          <label class="size-label" for="size">Brush</label>
+          <input id="size" type="range" min="2" max="50" value="10">
+          <span id="sizeDot" class="size-dot" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <div class="group">
+        <button id="eraserBtn" type="button">Eraser</button>
+        <button id="undoBtn" type="button">Undo</button>
+        <button id="clearBtn" type="button">Clear</button>
+      </div>
+    </section>
+
+    <section class="canvas-wrap">
+      <canvas id="paint" aria-label="Drawing canvas"></canvas>
+      <p class="hint">Use one finger on the trackpad to draw.</p>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("paint");
+    const ctx = canvas.getContext("2d");
+    const sizeInput = document.getElementById("size");
+    const sizeDot = document.getElementById("sizeDot");
+    const swatches = [...document.querySelectorAll(".swatch")];
+    const eraserBtn = document.getElementById("eraserBtn");
+    const undoBtn = document.getElementById("undoBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const state = {
+      drawing: false,
+      lastX: 0,
+      lastY: 0,
+      color: "#ff5b5b",
+      brushSize: Number(sizeInput.value),
+      erasing: false,
+      history: [],
+      maxHistory: 25
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      fillWhite();
+      if (image.width && image.height) {
+        const temp = document.createElement("canvas");
+        temp.width = image.width;
+        temp.height = image.height;
+        temp.getContext("2d").putImageData(image, 0, 0);
+        ctx.drawImage(temp, 0, 0, rect.width, rect.height);
+      }
+      applyBrush();
+    }
+
+    function fillWhite() {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    function applyBrush() {
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.strokeStyle = state.erasing ? "#ffffff" : state.color;
+      ctx.lineWidth = state.brushSize;
+      sizeDot.style.transform = `scale(${Math.max(0.35, state.brushSize / 10)})`;
+    }
+
+    function canvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function saveHistory() {
+      const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      state.history.push(snapshot);
+      if (state.history.length > state.maxHistory) {
+        state.history.shift();
+      }
+    }
+
+    function startDraw(event) {
+      event.preventDefault();
+      canvas.setPointerCapture(event.pointerId);
+      saveHistory();
+      state.drawing = true;
+      const { x, y } = canvasPoint(event);
+      state.lastX = x;
+      state.lastY = y;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    function draw(event) {
+      if (!state.drawing) {
+        return;
+      }
+      event.preventDefault();
+      const { x, y } = canvasPoint(event);
+      ctx.beginPath();
+      ctx.moveTo(state.lastX, state.lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      state.lastX = x;
+      state.lastY = y;
+    }
+
+    function stopDraw(event) {
+      if (!state.drawing) {
+        return;
+      }
+      event.preventDefault();
+      state.drawing = false;
+      canvas.releasePointerCapture(event.pointerId);
+    }
+
+    swatches.forEach((swatch) => {
+      swatch.addEventListener("click", () => {
+        state.color = swatch.dataset.color;
+        state.erasing = false;
+        eraserBtn.classList.remove("active");
+        swatches.forEach((item) => item.classList.remove("active"));
+        swatch.classList.add("active");
+        applyBrush();
+      });
+    });
+
+    eraserBtn.addEventListener("click", () => {
+      state.erasing = !state.erasing;
+      eraserBtn.classList.toggle("active", state.erasing);
+      if (state.erasing) {
+        swatches.forEach((item) => item.classList.remove("active"));
+      } else {
+        const match = swatches.find((item) => item.dataset.color === state.color);
+        if (match) {
+          match.classList.add("active");
+        }
+      }
+      applyBrush();
+    });
+
+    sizeInput.addEventListener("input", () => {
+      state.brushSize = Number(sizeInput.value);
+      applyBrush();
+    });
+
+    undoBtn.addEventListener("click", () => {
+      const previous = state.history.pop();
+      if (previous) {
+        ctx.putImageData(previous, 0, 0);
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      saveHistory();
+      fillWhite();
+      applyBrush();
+    });
+
+    canvas.addEventListener("pointerdown", startDraw);
+    canvas.addEventListener("pointermove", draw);
+    canvas.addEventListener("pointerup", stopDraw);
+    canvas.addEventListener("pointercancel", stopDraw);
+    canvas.addEventListener("pointerleave", stopDraw);
+
+    window.addEventListener("resize", resizeCanvas);
+
+    resizeCanvas();
+    applyBrush();
+  </script>
+</body>
+</html>
