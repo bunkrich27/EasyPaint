@@ -4,10 +4,13 @@ A simple, distraction-free painting app for kids — built as a native macOS app
 
 ## Features
 
-- **7 vibrant colours** — red, orange, yellow, green, blue, purple, and black
-- **Adjustable brush size** — smooth slider from fine lines to thick strokes
-- **Eraser** — toggle on/off to fix mistakes
-- **Undo & Clear** — step back or start fresh with one click
+- **11 colours** — red, orange, yellow, green, blue, purple, pink, brown, gray, white, and black
+- **Tools** — brush, eraser, fill bucket, straight line, rectangle, and circle
+- **Smoother freehand strokes** — interpolated segments for nicer trackpad drawing
+- **Adjustable brush size** — slider from fine lines to thick strokes
+- **Undo & Redo** — step back and forward through recent changes
+- **Save** — export the canvas as a PNG
+- **Clear** — start fresh with one click
 - **Child-lock fullscreen** — launches straight into fullscreen with the close, minimise, and zoom buttons hidden so little ones stay focused
 - **Parent exit** — quit with `⌃⌥⌘Q` when it's time to stop
 
