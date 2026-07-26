@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="Easy Paint"
 BIN_NAME="EasyPaint"
+APP_VERSION="1.0.0"
 APP_DIR="$ROOT_DIR/dist/$APP_NAME.app"
-ZIP_PATH="$ROOT_DIR/dist/$APP_NAME.zip"
+ZIP_NAME="Easy-Paint-v${APP_VERSION}-macOS.zip"
+ZIP_PATH="$ROOT_DIR/dist/$ZIP_NAME"
 BUILD_DIR="$ROOT_DIR/build"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -17,6 +19,10 @@ ICON_SOURCE="$BUILD_DIR/icon-1024.png"
 ICONSET_DIR="$BUILD_DIR/AppIcon.iconset"
 ICNS_PATH="$BUILD_DIR/AppIcon.icns"
 PLIST_FILE="$CONTENTS_DIR/Info.plist"
+# Host architecture (this machine builds Apple Silicon arm64 only).
+HOST_ARCH="$(uname -m)"
+MACOS_MIN_VERSION="12.0"
+TARGET="${HOST_ARCH}-apple-macos${MACOS_MIN_VERSION}"
 
 if [[ ! -f "$SRC_FILE" ]]; then
   echo "Missing source file: $SRC_FILE" >&2
@@ -40,6 +46,7 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 swiftc \
   -O \
   -parse-as-library \
+  -target "$TARGET" \
   -framework Cocoa \
   -framework WebKit \
   "$SRC_FILE" \
@@ -85,7 +92,7 @@ cat > "$PLIST_FILE" <<'PLIST'
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>1.0</string>
+  <string>1.0.0</string>
   <key>CFBundleVersion</key>
   <string>1</string>
   <key>LSApplicationCategoryType</key>
@@ -103,10 +110,13 @@ if command -v codesign >/dev/null 2>&1; then
   codesign --force --deep --sign - "$APP_DIR" >/dev/null
 fi
 
-rm -f "$ZIP_PATH"
+# Remove any previous release archives so dist/ stays tidy.
+rm -f "$ZIP_PATH" "$ROOT_DIR/dist/$APP_NAME.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
 
 echo "Built app bundle:"
 echo "$APP_DIR"
 echo "Built zip archive:"
 echo "$ZIP_PATH"
+echo "Target: $TARGET (architecture: $HOST_ARCH, macOS ${MACOS_MIN_VERSION}+)"
+echo "Note: ad-hoc signed only (not Developer ID / not notarized)."
